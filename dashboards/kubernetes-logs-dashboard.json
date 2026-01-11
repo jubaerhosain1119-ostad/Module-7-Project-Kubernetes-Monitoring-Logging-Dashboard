@@ -1,0 +1,166 @@
+{
+  "dashboard": {
+    "title": "Kubernetes Logs Dashboard",
+    "tags": ["kubernetes", "loki", "logs"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Application Logs - Real-time",
+        "type": "logs",
+        "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "{namespace=\"application\"}",
+            "refId": "A",
+            "legendFormat": "{{pod}}/{{container}}"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "none"
+        }
+      },
+      {
+        "id": 2,
+        "title": "All Namespaces Logs",
+        "type": "logs",
+        "gridPos": {"h": 10, "w": 12, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "{namespace=~\".+\"}",
+            "refId": "A",
+            "legendFormat": "{{namespace}}/{{pod}}"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "none"
+        }
+      },
+      {
+        "id": 3,
+        "title": "Nginx Pod Logs",
+        "type": "logs",
+        "gridPos": {"h": 10, "w": 12, "x": 12, "y": 12},
+        "targets": [
+          {
+            "expr": "{namespace=\"application\", app=\"nginx\"}",
+            "refId": "A",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "none"
+        }
+      },
+      {
+        "id": 4,
+        "title": "Error Logs",
+        "type": "logs",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 22},
+        "targets": [
+          {
+            "expr": "{namespace=~\".+\"} |= \"error\" | logfmt",
+            "refId": "A",
+            "legendFormat": "{{namespace}}/{{pod}}"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": true,
+          "sortOrder": "Descending",
+          "wrapLogMessage": true,
+          "enableLogDetails": true,
+          "dedupStrategy": "none"
+        }
+      },
+      {
+        "id": 5,
+        "title": "Log Volume by Namespace",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30},
+        "targets": [
+          {
+            "expr": "sum(count_over_time({namespace=~\".+\"}[1m])) by (namespace)",
+            "refId": "A",
+            "legendFormat": "{{namespace}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Log Lines"},
+          {"format": "short"}
+        ],
+        "xaxis": {"mode": "time"},
+        "legend": {"show": true}
+      },
+      {
+        "id": 6,
+        "title": "Log Volume by Pod",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+        "targets": [
+          {
+            "expr": "sum(count_over_time({namespace=\"application\"}[1m])) by (pod)",
+            "refId": "A",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Log Lines"},
+          {"format": "short"}
+        ],
+        "xaxis": {"mode": "time"},
+        "legend": {"show": true}
+      }
+    ],
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(namespace)",
+          "current": {
+            "text": "application",
+            "value": "application"
+          },
+          "options": []
+        },
+        {
+          "name": "pod",
+          "type": "query",
+          "query": "label_values(pod, namespace=\"$namespace\")",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "options": []
+        }
+      ]
+    },
+    "annotations": {
+      "list": []
+    }
+  }
+}

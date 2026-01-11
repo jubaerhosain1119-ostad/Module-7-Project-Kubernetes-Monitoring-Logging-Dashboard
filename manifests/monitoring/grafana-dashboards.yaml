@@ -1,0 +1,379 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  kubernetes-logs-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Kubernetes Logs Dashboard",
+        "tags": ["kubernetes", "loki", "logs"],
+        "timezone": "browser",
+        "schemaVersion": 27,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Application Logs - Real-time",
+            "type": "logs",
+            "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "{namespace=\"application\"}",
+                "refId": "A",
+                "legendFormat": "{{pod}}/{{container}}"
+              }
+            ],
+            "options": {
+              "showTime": true,
+              "showLabels": true,
+              "sortOrder": "Descending",
+              "wrapLogMessage": true,
+              "enableLogDetails": true,
+              "dedupStrategy": "none"
+            }
+          },
+          {
+            "id": 2,
+            "title": "All Namespaces Logs",
+            "type": "logs",
+            "gridPos": {"h": 10, "w": 12, "x": 0, "y": 12},
+            "targets": [
+              {
+                "expr": "{namespace=~\".+\"}",
+                "refId": "A",
+                "legendFormat": "{{namespace}}/{{pod}}"
+              }
+            ],
+            "options": {
+              "showTime": true,
+              "showLabels": true,
+              "sortOrder": "Descending",
+              "wrapLogMessage": true,
+              "enableLogDetails": true,
+              "dedupStrategy": "none"
+            }
+          },
+          {
+            "id": 3,
+            "title": "Nginx Pod Logs",
+            "type": "logs",
+            "gridPos": {"h": 10, "w": 12, "x": 12, "y": 12},
+            "targets": [
+              {
+                "expr": "{namespace=\"application\", app=\"nginx\"}",
+                "refId": "A",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "options": {
+              "showTime": true,
+              "showLabels": true,
+              "sortOrder": "Descending",
+              "wrapLogMessage": true,
+              "enableLogDetails": true,
+              "dedupStrategy": "none"
+            }
+          },
+          {
+            "id": 4,
+            "title": "Error Logs",
+            "type": "logs",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 22},
+            "targets": [
+              {
+                "expr": "{namespace=~\".+\"} |= \"error\" | logfmt",
+                "refId": "A",
+                "legendFormat": "{{namespace}}/{{pod}}"
+              }
+            ],
+            "options": {
+              "showTime": true,
+              "showLabels": true,
+              "sortOrder": "Descending",
+              "wrapLogMessage": true,
+              "enableLogDetails": true,
+              "dedupStrategy": "none"
+            }
+          },
+          {
+            "id": 5,
+            "title": "Log Volume by Namespace",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30},
+            "targets": [
+              {
+                "expr": "sum(count_over_time({namespace=~\".+\"}[1m])) by (namespace)",
+                "refId": "A",
+                "legendFormat": "{{namespace}}"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "Log Lines"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          },
+          {
+            "id": 6,
+            "title": "Log Volume by Pod",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+            "targets": [
+              {
+                "expr": "sum(count_over_time({namespace=\"application\"}[1m])) by (pod)",
+                "refId": "A",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "Log Lines"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          }
+        ],
+        "time": {
+          "from": "now-15m",
+          "to": "now"
+        },
+        "timepicker": {},
+        "templating": {
+          "list": [
+            {
+              "name": "namespace",
+              "type": "query",
+              "query": "label_values(namespace)",
+              "current": {
+                "text": "application",
+                "value": "application"
+              },
+              "options": []
+            },
+            {
+              "name": "pod",
+              "type": "query",
+              "query": "label_values(pod, namespace=\"$namespace\")",
+              "current": {
+                "text": "All",
+                "value": "$__all"
+              },
+              "options": []
+            }
+          ]
+        },
+        "annotations": {
+          "list": []
+        }
+      }
+    }
+  kubernetes-metrics-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Kubernetes Metrics Dashboard",
+        "tags": ["kubernetes", "prometheus", "metrics"],
+        "timezone": "browser",
+        "schemaVersion": 27,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Cluster CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m])) by (pod, namespace)",
+                "legendFormat": "{{namespace}}/{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "CPU Usage"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          },
+          {
+            "id": 2,
+            "title": "Cluster Memory Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{container!=\"POD\",container!=\"\"}) by (pod, namespace) / 1024 / 1024",
+                "legendFormat": "{{namespace}}/{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "mbytes", "label": "Memory Usage"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          },
+          {
+            "id": 3,
+            "title": "Node CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m])) by (instance)",
+                "legendFormat": "{{instance}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "CPU Usage"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          },
+          {
+            "id": 4,
+            "title": "Node Memory Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{container!=\"POD\",container!=\"\"}) by (instance) / 1024 / 1024",
+                "legendFormat": "{{instance}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "mbytes", "label": "Memory Usage"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          },
+          {
+            "id": 5,
+            "title": "Pod Status",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "kube_pod_status_phase",
+                "format": "table",
+                "refId": "A"
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {"Time": true},
+                  "indexByName": {
+                    "Time": 0,
+                    "Value": 1,
+                    "namespace": 2,
+                    "pod": 3,
+                    "phase": 4
+                  },
+                  "renameByName": {
+                    "Value": "Status",
+                    "namespace": "Namespace",
+                    "pod": "Pod",
+                    "phase": "Phase"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Node Availability",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "count(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "orientation": "auto",
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"],
+                "fields": ""
+              }
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 1, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 7,
+            "title": "CPU Usage Trend",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{container!=\"POD\",container!=\"\"}[5m]))",
+                "legendFormat": "Total CPU Usage",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "short", "label": "CPU Cores"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          },
+          {
+            "id": 8,
+            "title": "Memory Usage Trend",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32},
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{container!=\"POD\",container!=\"\"}) / 1024 / 1024 / 1024",
+                "legendFormat": "Total Memory Usage",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "gbytes", "label": "Memory (GB)"},
+              {"format": "short"}
+            ],
+            "xaxis": {"mode": "time"},
+            "legend": {"show": true}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "timepicker": {},
+        "templating": {
+          "list": []
+        },
+        "annotations": {
+          "list": []
+        }
+      }
+    }
