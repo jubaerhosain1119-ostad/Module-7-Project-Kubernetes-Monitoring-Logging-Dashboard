@@ -1,0 +1,23 @@
+{{- if .Values.loki.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: {{ .Values.namespaces.logging }}
+  labels:
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+    app: loki
+spec:
+  type: {{ .Values.loki.service.type }}
+  ports:
+  - port: {{ .Values.loki.service.port }}
+    targetPort: {{ .Values.loki.service.port }}
+    protocol: TCP
+    name: http
+  - port: {{ .Values.loki.service.grpcPort }}
+    targetPort: {{ .Values.loki.service.grpcPort }}
+    protocol: TCP
+    name: grpc
+  selector:
+    app: loki
+{{- end }}

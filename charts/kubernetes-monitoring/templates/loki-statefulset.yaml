@@ -1,0 +1,63 @@
+{{- if .Values.loki.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: {{ .Values.namespaces.logging }}
+  labels:
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+    app: loki
+spec:
+  serviceName: loki
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        {{- include "kubernetes-monitoring.labels" . | nindent 8 }}
+        app: loki
+    spec:
+      containers:
+      - name: loki
+        image: "{{ .Values.loki.image.repository }}:{{ .Values.loki.image.tag }}"
+        imagePullPolicy: {{ .Values.loki.image.pullPolicy }}
+        args:
+          - -config.file=/etc/loki/loki.yaml
+        ports:
+        - containerPort: {{ .Values.loki.service.port }}
+          name: http
+        - containerPort: {{ .Values.loki.service.grpcPort }}
+          name: grpc
+        volumeMounts:
+        - name: config
+          mountPath: /etc/loki
+        {{- if .Values.loki.persistence.enabled }}
+        - name: storage
+          mountPath: /loki
+        {{- end }}
+        resources:
+          {{- toYaml .Values.loki.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: {{ .Values.loki.service.port }}
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: {{ .Values.loki.service.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: config
+        configMap:
+          name: loki-config
+      {{- if .Values.loki.persistence.enabled }}
+      - name: storage
+        persistentVolumeClaim:
+          claimName: loki-storage
+      {{- end }}
+{{- end }}

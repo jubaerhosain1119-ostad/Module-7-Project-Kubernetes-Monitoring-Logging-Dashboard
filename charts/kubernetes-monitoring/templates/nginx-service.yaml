@@ -1,0 +1,19 @@
+{{- if .Values.nginx.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: {{ .Values.namespaces.application }}
+  labels:
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+    app: nginx
+spec:
+  type: {{ .Values.nginx.service.type }}
+  ports:
+  - port: {{ .Values.nginx.service.port }}
+    targetPort: {{ .Values.nginx.service.port }}
+    protocol: TCP
+    name: http
+  selector:
+    app: nginx
+{{- end }}

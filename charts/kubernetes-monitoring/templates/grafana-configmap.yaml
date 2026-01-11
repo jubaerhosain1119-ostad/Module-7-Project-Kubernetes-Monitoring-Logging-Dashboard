@@ -1,0 +1,39 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: {{ .Values.namespaces.monitoring }}
+  labels:
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+    app: grafana
+data:
+  grafana.ini: |
+    [server]
+    root_url = %(protocol)s://%(domain)s:%(http_port)s/
+    
+    [security]
+    admin_user = {{ .Values.grafana.admin.user }}
+    admin_password = {{ .Values.grafana.admin.password }}
+    
+    [datasources]
+    [datasources.prometheus]
+    type = prometheus
+    access = proxy
+    url = http://prometheus.{{ .Values.namespaces.monitoring }}.svc.cluster.local:{{ .Values.prometheus.service.port }}
+    isDefault = true
+    editable = true
+    
+    [datasources.loki]
+    type = loki
+    access = proxy
+    url = http://loki.{{ .Values.namespaces.logging }}.svc.cluster.local:{{ .Values.loki.service.port }}
+    editable = true
+    
+    [users]
+    allow_sign_up = false
+    
+    [auth.anonymous]
+    enabled = true
+    org_role = Viewer
+{{- end }}

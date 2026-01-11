@@ -12,7 +12,7 @@ The solution consists of:
 - **Promtail**: Log collection agent (DaemonSet)
 - **Nginx**: Sample application for testing
 
-All components are deployed using plain Kubernetes YAML manifests.
+All components can be deployed using **Helm charts** (recommended) or plain Kubernetes YAML manifests.
 
 ## Prerequisites
 
@@ -20,6 +20,7 @@ All components are deployed using plain Kubernetes YAML manifests.
 - Minimum 4GB RAM, 2 CPU cores
 - Internet connectivity
 - SSH access to the EC2 instance
+- Helm 3.x (installed automatically by setup script)
 
 ## Quick Start
 
@@ -38,13 +39,35 @@ chmod +x scripts/setup-ec2.sh
 ```
 
 This script will:
-- Install Docker, kubectl, and Minikube
+- Install Docker, kubectl, Helm, and Minikube
 - Start a Minikube cluster
 - Enable necessary addons
 
 **Note**: After Docker installation, you may need to log out and log back in for group changes to take effect.
 
 ### 2. Deploy All Components
+
+#### Option A: Using Helm (Recommended)
+
+```bash
+# Deploy all components using Helm
+chmod +x scripts/deploy-helm.sh
+./scripts/deploy-helm.sh
+```
+
+Or with a custom values file:
+
+```bash
+./scripts/deploy-helm.sh charts/kubernetes-monitoring/values-production.yaml
+```
+
+**Helm Benefits:**
+- Single command deployment
+- Easy configuration via values.yaml
+- Simple upgrades and rollbacks
+- Better dependency management
+
+#### Option B: Using Plain YAML Manifests
 
 ```bash
 # Deploy all monitoring and logging components
@@ -89,27 +112,32 @@ Then access Grafana at: `http://localhost:3000`
 
 ```
 .
-├── manifests/
-│   ├── monitoring/          # Prometheus and Grafana manifests
-│   │   ├── namespace.yaml
-│   │   ├── prometheus-*.yaml
-│   │   └── grafana-*.yaml
-│   ├── logging/             # Loki and Promtail manifests
-│   │   ├── namespace.yaml
-│   │   ├── loki-*.yaml
-│   │   └── promtail-*.yaml
-│   └── application/         # Sample Nginx application
-│       ├── nginx-*.yaml
-│       └── nginx-namespace.yaml
-├── dashboards/              # Grafana dashboard JSON files
+├── charts/                  # Helm charts
+│   └── kubernetes-monitoring/
+│       ├── Chart.yaml       # Chart metadata
+│       ├── values.yaml     # Default configuration values
+│       ├── templates/      # Kubernetes manifest templates
+│       │   ├── prometheus-*.yaml
+│       │   ├── grafana-*.yaml
+│       │   ├── loki-*.yaml
+│       │   ├── promtail-*.yaml
+│       │   └── nginx-*.yaml
+│       └── dashboards/     # Grafana dashboard JSON files
+│           ├── kubernetes-metrics-dashboard.json
+│           └── kubernetes-logs-dashboard.json
+├── manifests/              # Plain YAML manifests (alternative deployment)
+│   ├── monitoring/         # Prometheus and Grafana manifests
+│   ├── logging/            # Loki and Promtail manifests
+│   └── application/        # Sample Nginx application
+├── dashboards/             # Grafana dashboard JSON files (for YAML deployment)
 │   ├── kubernetes-metrics-dashboard.json
 │   └── kubernetes-logs-dashboard.json
-├── scripts/                 # Deployment and setup scripts
-│   ├── setup-ec2.sh
-│   ├── deploy-all.sh
-│   ├── port-forward.sh
-│   └── create-dashboards-configmap.sh
-└── README.md
+└── scripts/                # Deployment and setup scripts
+    ├── setup-ec2.sh        # EC2 setup (installs Helm, kubectl, Minikube)
+    ├── deploy-helm.sh     # Helm deployment script (recommended)
+    ├── deploy-all.sh       # YAML deployment script
+    ├── port-forward.sh     # Port forwarding helper
+    └── create-dashboards-configmap.sh
 ```
 
 ## Grafana Dashboards
@@ -322,9 +350,55 @@ If PVCs are not binding:
 - **Scrapes**: All pod logs from all namespaces
 - **Labels**: Adds Kubernetes metadata (namespace, pod, container, etc.)
 
-## Manual Deployment
+## Helm Configuration
 
-If you prefer to deploy components manually:
+### Customizing Values
+
+Edit `charts/kubernetes-monitoring/values.yaml` to customize:
+
+- **Grafana credentials**: Change `grafana.admin.user` and `grafana.admin.password`
+- **Storage sizes**: Adjust `prometheus.persistence.size`, `grafana.persistence.size`, `loki.persistence.size`
+- **Storage class**: Set `global.storageClass` or component-specific `persistence.storageClass`
+- **NodePort**: Change `grafana.service.nodePort` (default: 30000)
+- **Resource limits**: Adjust CPU and memory for each component
+- **Retention periods**: Modify `prometheus.retention.time` and `loki.retention.period`
+- **Replicas**: Change `nginx.replicas` for the sample application
+
+### Using Custom Values File
+
+Create a custom values file:
+
+```bash
+# Copy the default values
+cp charts/kubernetes-monitoring/values.yaml charts/kubernetes-monitoring/values-production.yaml
+
+# Edit values-production.yaml with your settings
+# Then deploy:
+./scripts/deploy-helm.sh charts/kubernetes-monitoring/values-production.yaml
+```
+
+### Helm Commands
+
+```bash
+# Install/Upgrade
+helm upgrade --install kubernetes-monitoring charts/kubernetes-monitoring -f values.yaml
+
+# Check status
+helm status kubernetes-monitoring
+
+# List releases
+helm list
+
+# View values
+helm get values kubernetes-monitoring
+
+# Uninstall
+helm uninstall kubernetes-monitoring
+```
+
+## Manual Deployment (YAML)
+
+If you prefer to deploy components manually using plain YAML:
 
 ```bash
 # 1. Create namespaces
@@ -373,7 +447,21 @@ kubectl apply -f manifests/application/nginx-deployment.yaml
 
 ## Cleanup
 
-To remove all deployed components:
+### Helm Deployment
+
+To remove all deployed components installed via Helm:
+
+```bash
+# Uninstall Helm release
+helm uninstall kubernetes-monitoring
+
+# If namespaces were created, delete them
+kubectl delete namespace monitoring logging application
+```
+
+### YAML Deployment
+
+To remove all deployed components installed via YAML:
 
 ```bash
 # Delete application
@@ -393,11 +481,14 @@ kubectl delete namespace monitoring logging application
 
 ⚠️ **Important**: This setup is configured for development/testing purposes:
 
-- Default Grafana credentials (admin/admin) should be changed in production
+- **Default Grafana credentials** (admin/admin) should be changed in production
+  - For Helm: Edit `grafana.admin.user` and `grafana.admin.password` in `values.yaml`
+  - For YAML: Update `grafana-configmap.yaml` and `grafana-deployment.yaml`
 - Prometheus and Loki are exposed internally only (ClusterIP services)
 - Grafana is exposed via NodePort for easy access
 - Consider using Ingress with TLS for production deployments
 - Review and adjust RBAC permissions based on your security requirements
+- Use Kubernetes Secrets for sensitive data instead of hardcoding in values/configmaps
 
 ## Next Steps
 
@@ -413,6 +504,7 @@ kubectl delete namespace monitoring logging application
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Loki Documentation](https://grafana.com/docs/loki/latest/)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Helm Documentation](https://helm.sh/docs/)
 
 ## License
 

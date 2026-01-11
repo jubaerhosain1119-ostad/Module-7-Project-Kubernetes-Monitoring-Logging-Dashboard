@@ -1,0 +1,30 @@
+{{- if .Values.nginx.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: {{ .Values.namespaces.application }}
+  labels:
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+    app: nginx
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name _;
+        
+        access_log /var/log/nginx/access.log;
+        error_log /var/log/nginx/error.log;
+        
+        location / {
+            root /usr/share/nginx/html;
+            index index.html index.htm;
+        }
+        
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
+{{- end }}

@@ -38,6 +38,15 @@ else
     echo "kubectl is already installed"
 fi
 
+# Install Helm
+echo "Installing Helm..."
+if ! command -v helm &> /dev/null; then
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    echo "Helm installed successfully"
+else
+    echo "Helm is already installed"
+fi
+
 # Install Minikube
 echo "Installing Minikube..."
 if ! command -v minikube &> /dev/null; then
@@ -74,6 +83,9 @@ echo ""
 echo "kubectl version:"
 kubectl version --client --short
 echo ""
+echo "Helm version:"
+helm version --short
+echo ""
 echo "Minikube version:"
 minikube version
 echo ""
@@ -88,6 +100,7 @@ echo "Setup completed successfully!"
 echo "========================================="
 echo ""
 echo "Next steps:"
-echo "1. Run the deploy-all.sh script to deploy all components"
+echo "1. Run the deploy-helm.sh script to deploy all components with Helm (recommended)"
+echo "   OR run deploy-all.sh for plain YAML deployment"
 echo "2. Use port-forward.sh to access Grafana dashboard"
 echo ""

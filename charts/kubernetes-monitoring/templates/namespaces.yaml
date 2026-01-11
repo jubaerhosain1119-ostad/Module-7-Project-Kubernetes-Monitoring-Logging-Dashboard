@@ -1,0 +1,32 @@
+{{- if .Values.prometheus.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.monitoring }}
+  labels:
+    name: {{ .Values.namespaces.monitoring }}
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+{{- end }}
+
+{{- if or .Values.loki.enabled .Values.promtail.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.logging }}
+  labels:
+    name: {{ .Values.namespaces.logging }}
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+{{- end }}
+
+{{- if .Values.nginx.enabled }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespaces.application }}
+  labels:
+    name: {{ .Values.namespaces.application }}
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+{{- end }}

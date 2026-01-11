@@ -1,0 +1,16 @@
+{{- if and .Values.grafana.enabled .Values.grafana.dashboards.enabled }}
+{{- $files := .Files }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: {{ .Values.namespaces.monitoring }}
+  labels:
+    {{- include "kubernetes-monitoring.labels" . | nindent 4 }}
+    app: grafana
+data:
+{{- range $path, $bytes := .Files.Glob "dashboards/*.json" }}
+  {{ base $path }}: |
+{{ $files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
